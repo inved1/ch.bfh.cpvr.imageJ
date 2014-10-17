@@ -91,7 +91,7 @@ public class INV_HoughTransform_ implements PlugInFilter
                 m1[2][1]= hough1[a+2][b+1];
                 m1[2][2]= hough1[a+2][b+2];
                 
-                if(getMax2DArray(m1) == hough1[a][b])
+                if(getMaxFrom2DArray(m1) == hough1[a][b])
                 {
                     hough2[a][b] = hough1[a][b];
                 }
@@ -111,15 +111,55 @@ public class INV_HoughTransform_ implements PlugInFilter
         
         for(int y=0; y<ipTest.getHeight();y++){
             for(int x=0;x<ipTest.getWidth();x++){
-                ipTest.putPixel(x, y, hough2[x][y] );
+                int[] rgb = new int[3];
+                rgb[0] = rgb[1] = rgb[2] = (int)(((float)hough2[x][y]/(float)maxAccum) * 255.0f);
+                //ipTest.putPixel(x, y, hough2[x][y] );
+                ipTest.putPixel(x, y, rgb);
             }
         }
         ipTest.getHistogram();
         
-                imgTest.show();
+        imgTest.show();
         imgTest.updateAndDraw();
+        
         // Get n strongest lines into arrays lineAng & lineRad
         // ???
+        
+        /*get maxima in hough space */
+        int[][] maxArrayHough = new int[4][2]; //4 items, r&t hough space
+        int[][] maxArrayImgSpace = new int[4][2]; // 4 items, x&y points image space
+        maxArrayHough =getMax2DArrayAsArray(hough2, 4);
+        
+        ImagePlus imgLines = NewImage.createRGBImage("imgLines", nAng, nRad,1,NewImage.FILL_WHITE);
+        ImageProcessor ipLines = imgLines.getProcessor();
+        
+        for(int i= 0; i< maxArrayHough.length; i++){
+
+            
+            int t,r,x,y;
+          
+            t = maxArrayHough[i][0];
+            r = maxArrayHough[i][1];
+         
+            
+            x = (int) ((int)r * Math.cos(t)) ;
+            y = (int) ((int)r * Math.sin(t));
+            if(x<0){ x=+128;}
+            if(y<0){ y=+128;}
+            
+            ipLines.drawPixel(x, y);
+
+        }
+ /*
+        for (int i = 0; i < maxArrayImgSpace.length; i++){
+            for( int j = 0; j< maxArrayImgSpace.length; j++){
+                if((maxArrayImgSpace[i][0] != maxArrayImgSpace[j][0]) && (maxArrayImgSpace[i][1] != maxArrayImgSpace[j][1])){
+                   ipLines.drawLine(maxArrayImgSpace[i][0], maxArrayImgSpace[i][1], maxArrayImgSpace[j][0], maxArrayImgSpace[j][1]);
+                }
+            }
+        }*/
+        
+        
         
         long msLines = System.currentTimeMillis();
         
@@ -134,6 +174,8 @@ public class INV_HoughTransform_ implements PlugInFilter
                 ipAccum.putPixel(x, y, rgb);
             }
         }
+        imgLines.show();
+        imgLines.updateAndDraw();
         
         // Show and save Hough space image
         imgAccum.show();
@@ -156,7 +198,7 @@ public class INV_HoughTransform_ implements PlugInFilter
         plugin.run(im.getProcessor());
     }
     
-    public int getMax2DArray(int[][] arr){
+    public int getMaxFrom2DArray(int[][] arr){
         int maxVal= 0;
         for (int i = 0; i < arr.length; i++) 
         {
@@ -164,6 +206,34 @@ public class INV_HoughTransform_ implements PlugInFilter
                 if (arr[i][j] > maxVal) { maxVal = arr[i][j];}
         }
         return maxVal;
+    }
+    
+    public int[][] getMax2DArrayAsArray(int[][] arr, int cnt){
+        
+
+        int[][] ret = new int[cnt][2];
+        for(int a= 0; a < cnt; a++){
+            int maxVal = 0;
+            int maxPosI = 0;
+            int maxPosJ = 0;
+            for (int i = 0; i < arr.length; i++) 
+            {
+                for (int j = 0; j < arr.length; j++) 
+                    if (arr[i][j] > maxVal) 
+                    { 
+                           maxVal = arr[i][j];
+                           maxPosI = i;
+                           maxPosJ = j;
+                    }
+            }
+            ret[a][0]=maxPosI;
+            ret[a][1]=maxPosJ;
+            arr[maxPosI][maxPosJ]=0;
+            
+        }
+        
+        
+        return ret;
     }
     
 }
